@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyLink Shop - Bio Link & Mini Shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+/* ===== CSS RESET & VARIABLES ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --font-main:'Poppins',sans-serif;
+  --radius:16px;
+  --radius-sm:10px;
+  --transition:0.3s cubic-bezier(0.4,0,0.2,1);
+  --shadow:0 8px 32px rgba(0,0,0,0.12);
+  --glass-bg:rgba(255,255,255,0.08);
+  --glass-border:rgba(255,255,255,0.12);
+  --glass-shadow:0 8px 32px rgba(0,0,0,0.2);
+  --accent-primary:#6c5ce7;
+  --accent-secondary:#a29bfe;
+  --accent-neon:#00d2ff;
+  --accent-glow:0 0 20px rgba(108,92,231,0.5),0 0 60px rgba(108,92,231,0.2);
+  --neon-text:0 0 10px rgba(0,210,255,0.8),0 0 40px rgba(0,210,255,0.3);
+  --bg-primary:#0a0a1a;
+  --bg-secondary:#12122a;
+  --bg-card:rgba(255,255,255,0.05);
+  --text-primary:#ffffff;
+  --text-secondary:rgba(255,255,255,0.65);
+  --text-muted:rgba(255,255,255,0.4);
+  --border-color:rgba(255,255,255,0.08);
+  --danger:#ff6b6b;
+  --success:#51cf66;
+  --warning:#ffd43b;
+  --whatsapp:#25D366;
+}
+[data-theme="light"]{
+  --bg-primary:#f0f0ff;
+  --bg-secondary:#e8e8f8;
+  --glass-bg:rgba(255,255,255,0.65);
+  --glass-border:rgba(255,255,255,0.8);
+  --glass-shadow:0 8px 32px rgba(0,0,0,0.08);
+  --bg-card:rgba(255,255,255,0.7);
+  --text-primary:#1a1a2e;
+  --text-secondary:rgba(26,26,46,0.65);
+  --text-muted:rgba(26,26,46,0.4);
+  --border-color:rgba(0,0,0,0.08);
+  --shadow:0 8px 32px rgba(0,0,0,0.06);
+  --neon-text:0 0 10px rgba(108,92,231,0.5),0 0 40px rgba(108,92,231,0.15);
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{
+  font-family:var(--font-main);
+  background:var(--bg-primary);
+  color:var(--text-primary);
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background var(--transition),color var(--transition);
+  line-height:1.6;
+}
+
+/* ===== LOADING SCREEN ===== */
+#loader{
+  position:fixed;inset:0;z-index:10000;
+  background:var(--bg-primary);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity 0.5s ease,visibility 0.5s ease;
+}
+#loader.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.loader-ring{
+  width:60px;height:60px;position:relative;
+}
+.loader-ring div{
+  position:absolute;inset:0;
+  border:3px solid transparent;
+  border-radius:50%;
+}
+.loader-ring div:nth-child(1){
+  border-top-color:var(--accent-primary);
+  animation:spin 1s linear infinite;
+}
+.loader-ring div:nth-child(2){
+  border-right-color:var(--accent-neon);
+  animation:spin 1s linear infinite reverse;
+  inset:6px;
+}
+.loader-ring div:nth-child(3){
+  border-bottom-color:var(--accent-secondary);
+  animation:spin 1.5s linear infinite;
+  inset:12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text{
+  margin-top:20px;font-size:0.85rem;color:var(--text-secondary);
+  letter-spacing:2px;text-transform:uppercase;
+  animation:pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:0.5}50%{opacity:1}}
+
+/* ===== BACKGROUND EFFECTS ===== */
+.bg-gradient{
+  position:fixed;inset:0;z-index:-1;overflow:hidden;
+}
+.bg-gradient::before{
+  content:'';position:absolute;width:150%;height:150%;top:-25%;left:-25%;
+  background:
+    radial-gradient(circle at 20% 20%,rgba(108,92,231,0.15) 0%,transparent 50%),
+    radial-gradient(circle at 80% 80%,rgba(0,210,255,0.1) 0%,transparent 50%),
+    radial-gradient(circle at 50% 50%,rgba(162,155,254,0.08) 0%,transparent 50%);
+  animation:bgFloat 20s ease-in-out infinite;
+}
+@keyframes bgFloat{
+  0%,100%{transform:translate(0,0) rotate(0deg)}
+  33%{transform:translate(30px,-30px) rotate(1deg)}
+  66%{transform:translate(-20px,20px) rotate(-1deg)}
+}
+.bg-particles{
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+}
+
+/* ===== MAIN CONTAINER ===== */
+.container{
+  max-width:480px;margin:0 auto;padding:20px 16px 100px;
+  position:relative;z-index:1;
+}
+
+/* ===== TOP BAR ===== */
+.top-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 0;margin-bottom:24px;
+}
+.top-bar button{
+  width:40px;height:40px;border-radius:12px;border:1px solid var(--glass-border);
+  background:var(--glass-bg);backdrop-filter:blur(10px);
+  color:var(--text-secondary);cursor:pointer;font-size:1rem;
+  transition:all var(--transition);display:flex;align-items:center;justify-content:center;
+}
+.top-bar button:hover{
+  background:var(--accent-primary);color:#fff;
+  box-shadow:var(--accent-glow);transform:scale(1.05);
+}
+.top-bar button.active{background:var(--accent-primary);color:#fff}
+.btn-music.playing{animation:musicPulse 1s ease-in-out infinite}
+@keyframes musicPulse{0%,100%{box-shadow:0 0 0 0 rgba(108,92,231,0.4)}50%{box-shadow:0 0 0 10px rgba(108,92,231,0)}}
+
+
+/* ===== PROFILE SECTION ===== */
+.profile-card{
+  text-align:center;padding:32px 20px;margin-bottom:28px;
+  background:var(--glass-bg);backdrop-filter:blur(20px);
+  border:1px solid var(--glass-border);border-radius:var(--radius);
+  box-shadow:var(--glass-shadow);position:relative;overflow:hidden;
+  animation:fadeSlideUp 0.6s ease-out;
+}
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.profile-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:100px;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-neon));
+  opacity:0.15;
+}
+.profile-avatar-wrap{
+  position:relative;display:inline-block;margin-bottom:16px;
+}
+.profile-avatar{
+  width:100px;height:100px;border-radius:50%;
+  border:3px solid transparent;
+  background-image:linear-gradient(var(--bg-primary),var(--bg-primary)),linear-gradient(135deg,var(--accent-primary),var(--accent-neon));
+  background-origin:border-box;
+  background-clip:padding-box,border-box;
+  object-fit:cover;
+  cursor:pointer;transition:transform var(--transition);
+  display:block;
+}
+.profile-avatar:hover{transform:scale(1.08)}
+.profile-avatar-placeholder{
+  width:100px;height:100px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-neon));
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.2rem;color:#fff;cursor:pointer;transition:transform var(--transition);
+  border:3px solid rgba(255,255,255,0.2);
+}
+.profile-avatar-placeholder:hover{transform:scale(1.08)}
+.avatar-edit-badge{
+  position:absolute;bottom:2px;right:2px;
+  width:30px;height:30px;border-radius:50%;
+  background:var(--accent-primary);color:#fff;
+  display:none;align-items:center;justify-content:center;
+  font-size:0.7rem;border:2px solid var(--bg-primary);
+  cursor:pointer;transition:transform var(--transition);
+}
+.edit-mode .avatar-edit-badge{display:flex}
+.avatar-edit-badge:hover{transform:scale(1.15)}
+.profile-name{
+  font-size:1.5rem;font-weight:700;margin-bottom:4px;
+  position:relative;z-index:1;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.verified-badge{
+  color:var(--accent-neon);font-size:1.1rem;
+  text-shadow:var(--neon-text);display:none;
+}
+.verified-badge.show{display:inline-block}
+.profile-bio{
+  font-size:0.85rem;color:var(--text-secondary);
+  margin-bottom:12px;position:relative;z-index:1;
+  max-width:320px;margin-left:auto;margin-right:auto;
+}
+.profile-bio-input{
+  display:none;width:90%;max-width:320px;
+  background:var(--bg-card);border:1px solid var(--border-color);
+  border-radius:8px;padding:8px 12px;color:var(--text-primary);
+  font-family:var(--font-main);font-size:0.85rem;text-align:center;
+  resize:none;outline:none;
+}
+.edit-mode .profile-bio{display:none}
+.edit-mode .profile-bio-input{display:block}
+.profile-share-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 20px;border-radius:20px;border:1px solid var(--glass-border);
+  background:var(--glass-bg);color:var(--text-secondary);
+  font-size:0.8rem;font-family:var(--font-main);
+  cursor:pointer;transition:all var(--transition);
+  position:relative;z-index:1;
+}
+.profile-share-btn:hover{
+  background:var(--accent-primary);color:#fff;
+  box-shadow:var(--accent-glow);border-color:transparent;
+}
+
+/* ===== SECTION HEADERS ===== */
+.section-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:14px;padding:0 4px;
+}
+.section-title{
+  font-size:0.75rem;font-weight:600;text-transform:uppercase;
+  letter-spacing:2px;color:var(--text-muted);
+  display:flex;align-items:center;gap:8px;
+}
+.section-title i{color:var(--accent-secondary)}
+.btn-add{
+  width:30px;height:30px;border-radius:8px;border:none;
+  background:var(--accent-primary);color:#fff;cursor:pointer;
+  font-size:0.9rem;transition:all var(--transition);
+  display:none;align-items:center;justify-content:center;
+}
+.edit-mode .btn-add{display:flex}
+.btn-add:hover{transform:scale(1.1);box-shadow:var(--accent-glow)}
+
+/* ===== LINK BUTTONS ===== */
+.links-section{margin-bottom:32px}
+.link-item{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 18px;margin-bottom:10px;
+  background:var(--glass-bg);backdrop-filter:blur(16px);
+  border:1px solid var(--glass-border);border-radius:var(--radius-sm);
+  cursor:pointer;transition:all var(--transition);
+  position:relative;overflow:hidden;text-decoration:none;
+  color:var(--text-primary);
+  animation:fadeSlideUp 0.6s ease-out backwards;
+}
+.link-item:nth-child(2){animation-delay:0.05s}
+.link-item:nth-child(3){animation-delay:0.1s}
+.link-item:nth-child(4){animation-delay:0.15s}
+.link-item:nth-child(5){animation-delay:0.2s}
+.link-item:hover{
+  transform:translateY(-2px);
+  box-shadow:var(--glass-shadow);
+  border-color:var(--accent-secondary);
+}
+.link-icon{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;flex-shrink:0;
+  background:linear-gradient(135deg,rgba(108,92,231,0.2),rgba(0,210,255,0.2));
+  color:var(--accent-neon);
+}
+.link-info{flex:1;min-width:0}
+.link-title{font-size:0.9rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-url{font-size:0.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-clicks{
+  font-size:0.65rem;color:var(--text-muted);
+  background:var(--bg-card);padding:2px 8px;border-radius:10px;
+  display:none;
+}
+.link-item.popular .link-title::after{
+  content:'POPULER';font-size:0.55rem;background:linear-gradient(135deg,#ff6b6b,#ffd43b);
+  color:#fff;padding:1px 6px;border-radius:6px;margin-left:8px;
+  font-weight:700;vertical-align:middle;letter-spacing:0.5px;
+}
+.link-actions{
+  display:none;gap:4px;
+}
+.edit-mode .link-actions{display:flex}
+.link-actions button{
+  width:28px;height:28px;border-radius:6px;border:none;
+  cursor:pointer;font-size:0.7rem;transition:all var(--transition);
+  display:flex;align-items:center;justify-content:center;
+}
+.link-actions .btn-edit-link{background:rgba(0,210,255,0.15);color:var(--accent-neon)}
+.link-actions .btn-delete-link{background:rgba(255,107,107,0.15);color:var(--danger)}
+.link-actions .btn-delete-link.confirm{background:var(--danger);color:#fff;width:auto;padding:0 8px;font-size:0.6rem;font-weight:600;font-family:var(--font-main);letter-spacing:0.3px}
+.link-actions button:hover{transform:scale(1.1)}
+
+/* ===== RIPPLE EFFECT ===== */
+.ripple{
+  position:absolute;border-radius:50%;
+  background:rgba(108,92,231,0.35);
+  transform:scale(0);animation:rippleAnim 0.6s ease-out;
+  pointer-events:none;
+}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+
+/* ===== SHOP SECTION ===== */
+.shop-section{margin-bottom:32px}
+.products-grid{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:12px;
+}
+.product-card{
+  background:var(--glass-bg);backdrop-filter:blur(16px);
+  border:1px solid var(--glass-border);border-radius:var(--radius-sm);
+  overflow:hidden;transition:all var(--transition);
+  animation:fadeSlideUp 0.6s ease-out backwards;
+  position:relative;
+}
+.product-card:hover{
+  transform:translateY(-4px);
+  box-shadow:var(--glass-shadow);
+}
+.product-card:nth-child(2){animation-delay:0.05s}
+.product-card:nth-child(3){animation-delay:0.1s}
+.product-card:nth-child(4){animation-delay:0.15s}
+.product-img-wrap{
+  width:100%;aspect-ratio:1;overflow:hidden;position:relative;
+  background:linear-gradient(135deg,rgba(108,92,231,0.15),rgba(0,210,255,0.15));
+}
+.product-img-wrap img{
+  width:100%;height:100%;object-fit:cover;
+  transition:transform 0.4s ease;
+}
+.product-card:hover .product-img-wrap img{transform:scale(1.05)}
+.product-img-placeholder{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:2rem;color:var(--text-muted);
+}
+.product-badge-popular{
+  position:absolute;top:8px;left:8px;
+  background:linear-gradient(135deg,#ff6b6b,#ee5a24);
+  color:#fff;font-size:0.6rem;font-weight:700;
+  padding:3px 8px;border-radius:6px;letter-spacing:0.5px;
+}
+.product-actions-card{
+  position:absolute;top:8px;right:8px;display:none;gap:4px;z-index:3;
+}
+.edit-mode .product-actions-card{display:flex}
+.product-actions-card button{
+  width:26px;height:26px;border-radius:6px;border:none;
+  cursor:pointer;font-size:0.65rem;transition:all var(--transition);
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.5);color:#fff;backdrop-filter:blur(4px);
+}
+.product-actions-card button:hover{transform:scale(1.1)}
+.product-info{padding:12px}
+.product-name{font-size:0.82rem;font-weight:600;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.product-desc{font-size:0.68rem;color:var(--text-muted);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.product-bottom{display:flex;align-items:center;justify-content:space-between}
+.product-price{
+  font-size:0.85rem;font-weight:700;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-neon));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.btn-buy{
+  padding:6px 14px;border-radius:8px;border:none;
+  background:linear-gradient(135deg,var(--whatsapp),#128C7E);
+  color:#fff;font-size:0.68rem;font-weight:600;
+  font-family:var(--font-main);cursor:pointer;
+  transition:all var(--transition);
+  display:flex;align-items:center;gap:4px;
+}
+.btn-buy:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(37,211,102,0.4)}
+.btn-demo{
+  padding:6px 10px;border-radius:8px;border:none;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-neon));
+  color:#fff;font-size:0.75rem;cursor:pointer;
+  transition:all var(--transition);text-decoration:none;
+  display:flex;align-items:center;justify-content:center;
+}
+.btn-demo:hover{transform:scale(1.08);box-shadow:var(--accent-glow)}
+
+/* ===== FLOATING BUTTONS ===== */
+.fab-container{
+  position:fixed;bottom:24px;right:24px;z-index:1000;
+  display:flex;flex-direction:column;gap:10px;align-items:flex-end;
+}
+.fab-btn{
+  width:52px;height:52px;border-radius:50%;border:none;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:1.2rem;color:#fff;
+  transition:all var(--transition);
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+}
+.fab-btn:hover{transform:scale(1.1)}
+.fab-whatsapp{background:var(--whatsapp)}
+.fab-whatsapp:hover{box-shadow:0 0 30px rgba(37,211,102,0.5)}
+.fab-top{background:linear-gradient(135deg,var(--accent-primary),var(--accent-neon))}
+.fab-top:hover{box-shadow:var(--accent-glow)}
+
+/* ===== MODAL ===== */
+.modal-overlay{
+  position:fixed;inset:0;z-index:5000;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);
+  display:none;align-items:center;justify-content:center;
+  padding:20px;animation:fadeIn 0.3s ease;
+}
+.modal-overlay.show{display:flex}
+.modal{
+  background:var(--bg-secondary);border:1px solid var(--glass-border);
+  border-radius:var(--radius);padding:24px;
+  width:100%;max-width:420px;max-height:85vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
+  animation:modalSlide 0.3s ease;
+}
+@keyframes modalSlide{from{opacity:0;transform:translateY(20px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;
+}
+.modal-title{font-size:1.1rem;font-weight:700}
+.modal-close{
+  width:32px;height:32px;border-radius:8px;border:none;
+  background:var(--bg-card);color:var(--text-secondary);
+  cursor:pointer;font-size:0.9rem;transition:all var(--transition);
+  display:flex;align-items:center;justify-content:center;
+}
+.modal-close:hover{background:var(--danger);color:#fff}
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.form-input,.form-select,.form-textarea{
+  width:100%;padding:10px 14px;border-radius:var(--radius-sm);
+  border:1px solid var(--border-color);background:var(--bg-card);
+  color:var(--text-primary);font-family:var(--font-main);
+  font-size:0.85rem;outline:none;transition:border-color var(--transition);
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent-primary)}
+.form-textarea{resize:vertical;min-height:70px}
+.form-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.form-select option{background:var(--bg-secondary);color:var(--text-primary)}
+.img-upload-area{
+  border:2px dashed var(--border-color);border-radius:var(--radius-sm);
+  padding:20px;text-align:center;cursor:pointer;transition:all var(--transition);
+  position:relative;overflow:hidden;
+}
+.img-upload-area:hover{border-color:var(--accent-primary);background:rgba(108,92,231,0.05)}
+.img-upload-area input[type="file"]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;
+}
+.img-upload-area i{font-size:1.5rem;color:var(--text-muted);margin-bottom:6px;display:block}
+.img-upload-area span{font-size:0.75rem;color:var(--text-muted)}
+.img-preview{max-width:100%;max-height:120px;border-radius:8px;margin-top:8px;display:none}
+.img-preview.show{display:block;margin:8px auto 0}
+.form-row{display:flex;gap:12px}
+.form-row .form-group{flex:1}
+.btn-submit{
+  width:100%;padding:12px;border-radius:var(--radius-sm);border:none;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-neon));
+  color:#fff;font-family:var(--font-main);font-size:0.9rem;font-weight:600;
+  cursor:pointer;transition:all var(--transition);
+}
+.btn-submit:hover{transform:translateY(-1px);box-shadow:var(--accent-glow)}
+.btn-secondary{
+  width:100%;padding:10px;border-radius:var(--radius-sm);
+  border:1px solid var(--border-color);background:transparent;
+  color:var(--text-secondary);font-family:var(--font-main);
+  font-size:0.8rem;cursor:pointer;transition:all var(--transition);
+  margin-top:8px;
+}
+.btn-secondary:hover{background:var(--bg-card)}
+
+/* ===== STATS MODAL ===== */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.stat-card{
+  background:var(--bg-card);border-radius:var(--radius-sm);padding:14px;
+  text-align:center;
+}
+.stat-value{font-size:1.4rem;font-weight:800;background:linear-gradient(135deg,var(--accent-primary),var(--accent-neon));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:0.65rem;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:1px}
+.stats-list{max-height:250px;overflow-y:auto}
+.stats-list-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-radius:8px;margin-bottom:4px;
+  background:var(--bg-card);
+}
+.stats-list-item .name{font-size:0.8rem;font-weight:500}
+.stats-list-item .count{font-size:0.8rem;font-weight:700;color:var(--accent-neon)}
+
+/* ===== TOAST ===== */
+.toast-container{
+  position:fixed;top:20px;right:20px;z-index:9000;
+  display:flex;flex-direction:column;gap:8px;
+}
+.toast{
+  padding:12px 20px;border-radius:var(--radius-sm);
+  background:var(--bg-secondary);border:1px solid var(--glass-border);
+  color:var(--text-primary);font-size:0.8rem;font-weight:500;
+  box-shadow:var(--glass-shadow);backdrop-filter:blur(16px);
+  animation:toastIn 0.3s ease,toastOut 0.3s ease 2.7s forwards;
+  display:flex;align-items:center;gap:8px;
+}
+.toast.success{border-left:3px solid var(--success)}
+.toast.error{border-left:3px solid var(--danger)}
+.toast.info{border-left:3px solid var(--accent-neon)}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(40px)}}
+
+/* ===== TOGGLE SWITCH ===== */
+.toggle-wrap{display:flex;align-items:center;gap:8px;font-size:0.75rem;color:var(--text-secondary)}
+.toggle{position:relative;width:36px;height:20px}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{
+  position:absolute;inset:0;cursor:pointer;
+  background:var(--bg-card);border-radius:20px;
+  transition:var(--transition);
+}
+.toggle-slider::before{
+  content:'';position:absolute;width:16px;height:16px;
+  left:2px;bottom:2px;background:#fff;border-radius:50%;
+  transition:var(--transition);
+}
+.toggle input:checked + .toggle-slider{background:var(--accent-primary)}
+.toggle input:checked + .toggle-slider::before{transform:translateX(16px)}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--accent-primary);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-secondary)}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:380px){
+  .container{padding:12px 12px 80px}
+  .profile-name{font-size:1.3rem}
+  .products-grid{gap:8px}
+  .modal{padding:18px}
+}
+@media(min-width:768px){
+  .container{padding:40px 20px 120px}
+}
+
+/* ===== NEON GLOW HOVER ===== */
+.link-item::after{
+  content:'';position:absolute;inset:0;
+  border-radius:inherit;opacity:0;transition:opacity var(--transition);
+  box-shadow:inset 0 0 30px rgba(108,92,231,0.1),0 0 15px rgba(0,210,255,0.08);
+  pointer-events:none;
+}
+.link-item:hover::after{opacity:1}
+.link-actions{position:relative;z-index:2}
+
+/* ===== MUSIC PLAYER MINI BAR ===== */
+.music-mini-bar{
+  position:fixed;bottom:90px;left:16px;right:16px;z-index:999;
+  max-width:440px;margin:0 auto;
+  background:var(--bg-secondary);border:1px solid var(--glass-border);
+  border-radius:var(--radius-sm);overflow:hidden;
+  box-shadow:0 12px 40px rgba(0,0,0,0.4);backdrop-filter:blur(20px);
+  transform:translateY(120%);opacity:0;
+  transition:all 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+.music-mini-bar.show{transform:translateY(0);opacity:1}
+.music-mini-bar-inner{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;
+}
+.music-mini-bar-info{flex:1;min-width:0}
+.music-mini-bar-title{font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.music-mini-bar-title .pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--success);animation:dotPulse 1.5s ease-in-out infinite;flex-shrink:0}
+@keyframes dotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.music-mini-bar-subtitle{font-size:0.6rem;color:var(--text-muted);margin-top:2px}
+.music-mini-bar-btn{
+  width:32px;height:32px;border-radius:50%;border:none;
+  background:var(--accent-primary);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.8rem;transition:all var(--transition);flex-shrink:0;
+}
+.music-mini-bar-btn:hover{transform:scale(1.1);box-shadow:var(--accent-glow)}
+.music-mini-bar-btn.close{background:var(--danger);font-size:0.65rem}
+.music-hidden-player{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
+
+/* ===== WELCOME SCREEN ===== */
+#welcomeScreen{
+  position:fixed;inset:0;z-index:20000;
+  background:var(--bg-primary);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;padding:24px;
+}
+#welcomeScreen.hidden{display:none}
+.welcome-card{
+  width:100%;max-width:380px;text-align:center;
+  animation:fadeSlideUp 0.6s ease-out;
+}
+.welcome-logo{
+  width:80px;height:80px;border-radius:24px;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-neon));
+  display:flex;align-items:center;justify-content:center;
+  font-size:2rem;color:#fff;margin:0 auto 20px;
+  box-shadow:0 12px 40px rgba(108,92,231,0.3);
+}
+.welcome-title{font-size:1.5rem;font-weight:800;margin-bottom:6px}
+.welcome-subtitle{font-size:0.85rem;color:var(--text-secondary);margin-bottom:28px;line-height:1.5}
+.welcome-form .form-input{
+  text-align:center;font-size:1rem;padding:14px 18px;
+  border-radius:14px;margin-bottom:12px;
+  background:var(--glass-bg);border:1px solid var(--glass-border);
+  backdrop-filter:blur(10px);
+}
+.welcome-form .form-input:focus{border-color:var(--accent-primary);box-shadow:var(--accent-glow)}
+.welcome-btn{
+  width:100%;padding:14px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-neon));
+  color:#fff;font-family:var(--font-main);font-size:1rem;font-weight:700;
+  cursor:pointer;transition:all var(--transition);margin-top:4px;
+}
+.welcome-btn:hover{transform:translateY(-2px);box-shadow:var(--accent-glow)}
+.welcome-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.welcome-hint{font-size:0.7rem;color:var(--text-muted);margin-top:16px;line-height:1.6}
+.welcome-error{color:var(--danger);font-size:0.8rem;margin-bottom:12px;display:none}
+.welcome-exist{
+  margin-top:16px;padding:14px;border-radius:12px;
+  background:var(--bg-card);border:1px solid var(--border-color);
+  text-align:left;
+}
+.welcome-exist-title{font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:8px}
+.welcome-exist-item{
+  display:flex;align-items:center;gap:10px;padding:8px 12px;
+  border-radius:8px;cursor:pointer;transition:all var(--transition);
+}
+.welcome-exist-item:hover{background:rgba(108,92,231,0.1)}
+.welcome-exist-item .item-avatar{
+  width:36px;height:36px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-neon));
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.8rem;color:#fff;flex-shrink:0;
+}
+.welcome-exist-item .item-name{font-size:0.85rem;font-weight:600}
+.welcome-exist-item .item-url{font-size:0.6rem;color:var(--text-muted)}
+.welcome-features{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:20px;
+}
+.welcome-feature{
+  padding:12px 8px;border-radius:10px;background:var(--bg-card);
+  border:1px solid var(--border-color);
+}
+.welcome-feature i{font-size:1.2rem;margin-bottom:6px;display:block;color:var(--accent-neon)}
+.welcome-feature span{font-size:0.65rem;color:var(--text-secondary)}
+
+/* ===== SHARE VIEW (SHOP ONLY) ===== */
+.share-view .top-bar .btn-admin-only{display:none!important}
+.share-view #linksSection{display:none!important}
+.share-view .avatar-edit-badge{display:none!important}
+.share-view .profile-bio-input{display:none!important}
+.share-view .toggle-wrap{display:none!important}
+.share-view .link-actions{display:none!important}
+.share-view .product-actions-card{display:none!important}
+.share-view .link-clicks{display:none!important}
+.share-view .fab-whatsapp{display:none!important}
+.share-view .music-mini-bar{display:none!important}
+.share-view .music-hidden-player{display:none!important}
+.share-view .profile-share-btn{display:none!important}
+.share-view .section-title{justify-content:center}
+.share-view .shop-section{margin-bottom:80px}
+
+/* ===== MUSIC VISUALIZER ===== */
+.music-bars{display:flex;align-items:flex-end;gap:2px;height:14px}
+.music-bars span{
+  width:3px;background:currentColor;border-radius:2px;
+  animation:musicBar 0.8s ease-in-out infinite;
+}
+.music-bars span:nth-child(1){height:60%;animation-delay:0s}
+.music-bars span:nth-child(2){height:100%;animation-delay:0.2s}
+.music-bars span:nth-child(3){height:40%;animation-delay:0.4s}
+.music-bars span:nth-child(4){height:80%;animation-delay:0.1s}
+.btn-music:not(.playing) .music-bars{display:none}
+@keyframes musicBar{0%,100%{transform:scaleY(0.4)}50%{transform:scaleY(1)}}
+</style>
+</head>
+<body>
+
+<!-- WELCOME SCREEN -->
+<div id="welcomeScreen" class="hidden">
+  <div class="bg-gradient"></div>
+  <div class="welcome-card">
+    <div class="welcome-logo"><i class="fas fa-link"></i></div>
+    <div class="welcome-title">MyLink Shop</div>
+    <div class="welcome-subtitle">Buat bio link & toko digital Anda sendiri. Gratis, tanpa daftar, langsung pakai!</div>
+    <div class="welcome-features">
+      <div class="welcome-feature"><i class="fas fa-link"></i><span>Linktree</span></div>
+      <div class="welcome-feature"><i class="fas fa-store"></i><span>Mini Shop</span></div>
+      <div class="welcome-feature"><i class="fas fa-cloud"></i><span>Cloud Sync</span></div>
+    </div>
+    <div style="margin-top:24px">
+      <div class="welcome-error" id="welcomeError"></div>
+      <div class="welcome-form">
+        <input class="form-input" id="welcomeUsername" placeholder="Masukkan username Anda" maxlength="20" autocomplete="off" spellcheck="false">
+        <button class="welcome-btn" id="welcomeBtn" onclick="handleWelcome()">
+          <i class="fas fa-rocket"></i> Mulai Sekarang
+        </button>
+      </div>
+      <div class="welcome-hint">
+        Username hanya boleh huruf, angka, titik, dan underscore.<br>
+        Data Anda tersimpan otomatis di browser & cloud.
+      </div>
+      <div class="welcome-exist" id="welcomeExist" style="display:none">
+        <div class="welcome-exist-title"><i class="fas fa-clock"></i> Akun Terakhir</div>
+        <div id="welcomeExistList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="loader-ring"><div></div><div></div><div></div></div>
+  <div class="loader-text">Memuat...</div>
+</div>
+
+<!-- BACKGROUND -->
+<div class="bg-gradient"></div>
+<canvas class="bg-particles" id="particlesCanvas"></canvas>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <button id="btnTheme" title="Toggle Theme"><i class="fas fa-moon"></i></button>
+    <button class="btn-music btn-admin-only" id="btnMusic" title="Background Music">
+      <div class="music-bars"><span></span><span></span><span></span><span></span></div>
+      <i class="fas fa-music"></i>
+    </button>
+    <button class="btn-admin-only" id="btnStats" title="Statistik"><i class="fas fa-chart-bar"></i></button>
+    <button class="btn-admin-only" id="btnEdit" title="Mode Edit"><i class="fas fa-pen"></i></button>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="profile-card" id="profileCard">
+    <div class="profile-avatar-wrap">
+      <img class="profile-avatar" id="profileAvatar" src="" alt="Avatar" style="display:none">
+      <div class="profile-avatar-placeholder" id="avatarPlaceholder"><i class="fas fa-user"></i></div>
+      <div class="avatar-edit-badge" id="avatarEditBtn"><i class="fas fa-camera"></i></div>
+      <input type="file" id="avatarInput" accept="image/*" hidden>
+    </div>
+    <div class="profile-name">
+      <span id="profileNameDisplay">Nama Pengguna</span>
+      <input class="profile-bio-input" id="profileNameInput" value="Nama Pengguna" placeholder="Nama Anda" style="display:none;text-align:center;margin-bottom:8px">
+      <span class="verified-badge show" id="verifiedBadge"><i class="fas fa-circle-check"></i></span>
+    </div>
+    <p class="profile-bio" id="profileBioDisplay">Selamat datang di profil saya! &#10024;</p>
+    <textarea class="profile-bio-input" id="profileBioInput" placeholder="Tulis bio singkat Anda..."></textarea>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;align-items:center">
+      <button class="profile-share-btn" id="btnShare"><i class="fas fa-share-nodes"></i> Share</button>
+      <div class="toggle-wrap">
+        <span>Verified</span>
+        <label class="toggle"><input type="checkbox" id="toggleVerified" checked><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- LINKS SECTION -->
+  <div class="links-section" id="linksSection">
+    <div class="section-header">
+      <div class="section-title"><i class="fas fa-link"></i> Tautan Saya</div>
+      <button class="btn-add" id="btnAddLink" title="Tambah Link"><i class="fas fa-plus"></i></button>
+    </div>
+    <div id="linksList"></div>
+  </div>
+
+  <!-- SHOP SECTION -->
+  <div class="shop-section" id="shopSection">
+    <div class="section-header">
+      <div class="section-title"><i class="fas fa-store"></i> Produk</div>
+      <button class="btn-add" id="btnAddProduct" title="Tambah Produk"><i class="fas fa-plus"></i></button>
+    </div>
+    <div class="products-grid" id="productsGrid"></div>
+  </div>
+
+</div>
+
+<!-- FLOATING BUTTONS -->
+<div class="fab-container">
+  <button class="fab-btn fab-top" id="fabTop" title="Ke Atas" style="display:none"><i class="fas fa-arrow-up"></i></button>
+  <button class="fab-btn fab-whatsapp" id="fabWhatsApp" title="Chat WhatsApp"><i class="fab fa-whatsapp"></i></button>
+</div>
+
+<!-- MODAL: ADD/EDIT LINK -->
+<div class="modal-overlay" id="modalLink">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalLinkTitle">Tambah Link</div>
+      <button class="modal-close" onclick="closeModal('modalLink')"><i class="fas fa-xmark"></i></button>
+    </div>
+    <form id="formLink" onsubmit="saveLink(event)">
+      <div class="form-group">
+        <label class="form-label">Platform</label>
+        <select class="form-select" id="linkPlatform">
+          <option value="instagram">Instagram</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="tiktok">TikTok</option>
+          <option value="youtube">YouTube</option>
+          <option value="twitter">Twitter / X</option>
+          <option value="facebook">Facebook</option>
+          <option value="telegram">Telegram</option>
+          <option value="linkedin">LinkedIn</option>
+          <option value="spotify">Spotify</option>
+          <option value="github">GitHub</option>
+          <option value="email">Email</option>
+          <option value="website">Website</option>
+          <option value="other">Lainnya</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Label Tampilan</label>
+        <input class="form-input" id="linkTitle" placeholder="Contoh: Instagram Saya" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL</label>
+        <input class="form-input" id="linkUrl" placeholder="https://..." required>
+      </div>
+      <input type="hidden" id="linkEditId" value="">
+      <button type="submit" class="btn-submit"><i class="fas fa-check"></i> Simpan Link</button>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: ADD/EDIT PRODUCT -->
+<div class="modal-overlay" id="modalProduct">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalProductTitle">Tambah Produk</div>
+      <button class="modal-close" onclick="closeModal('modalProduct')"><i class="fas fa-xmark"></i></button>
+    </div>
+    <form id="formProduct" onsubmit="saveProduct(event)">
+      <div class="form-group">
+        <label class="form-label">Gambar Produk</label>
+        <div class="img-upload-area" id="productImgUpload">
+          <input type="file" accept="image/*" id="productImgInput">
+          <i class="fas fa-cloud-arrow-up"></i>
+          <span>Klik atau seret gambar ke sini</span>
+        </div>
+        <img class="img-preview" id="productImgPreview" alt="Preview">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nama Produk</label>
+        <input class="form-input" id="productName" placeholder="Nama produk" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Harga (Rp)</label>
+        <input class="form-input" id="productPrice" type="number" min="0" placeholder="0" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Deskripsi Singkat</label>
+        <textarea class="form-textarea" id="productDesc" placeholder="Deskripsi produk..." rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">No. WhatsApp (untuk tombol Beli)</label>
+        <input class="form-input" id="productWhatsapp" placeholder="628123456789" value="">
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL Demo Produk <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(opsional)</span></label>
+        <div style="position:relative">
+          <input class="form-input" id="productDemoUrl" type="url" placeholder="https://demo.contoh.com" style="padding-right:38px">
+          <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--accent-neon);font-size:0.85rem"><i class="fas fa-eye"></i></span>
+        </div>
+      </div>
+      <input type="hidden" id="productEditId" value="">
+      <input type="hidden" id="productImgData" value="">
+      <button type="submit" class="btn-submit"><i class="fas fa-check"></i> Simpan Produk</button>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: STATS -->
+<div class="modal-overlay" id="modalStats">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fas fa-chart-bar"></i> Statistik</div>
+      <button class="modal-close" onclick="closeModal('modalStats')"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="statTotalClicks">0</div>
+        <div class="stat-label">Total Klik</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statTotalLinks">0</div>
+        <div class="stat-label">Link Aktif</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statTotalProducts">0</div>
+        <div class="stat-label">Produk</div>
+      </div>
+    </div>
+    <div class="form-label" style="margin-bottom:8px">Klik per Link</div>
+    <div class="stats-list" id="statsLinksList"></div>
+    <div style="margin-top:16px">
+      <button class="btn-secondary" onclick="resetStats()"><i class="fas fa-trash"></i> Reset Semua Statistik</button>
+    </div>
+  </div>
+</div>
+
+<!-- MINI MUSIC PLAYER -->
+<div class="music-mini-bar" id="musicMiniBar">
+  <div class="music-mini-bar-inner">
+    <div class="music-mini-bar-info">
+      <div class="music-mini-bar-title"><span class="pulse-dot"></span> Sedang Memutar</div>
+      <div class="music-mini-bar-subtitle">Klik untuk buka / tutup player</div>
+    </div>
+    <button class="music-mini-bar-btn" id="btnToggleExpand" title="Buka/Tutup Player"><i class="fas fa-chevron-up"></i></button>
+    <button class="music-mini-bar-btn close" id="btnStopMusic" title="Hentikan Musik"><i class="fas fa-xmark"></i></button>
+  </div>
+  <div id="musicPlayerExpanded" style="display:none">
+    <iframe id="musicIframe" src="" allow="autoplay;encrypted-media" style="width:100%;height:220px;border:none;display:block"></iframe>
+  </div>
+</div>
+<!-- HIDDEN AUTOPLAY PLAYER -->
+<div class="music-hidden-player">
+  <iframe id="musicIframeHidden" src="" allow="autoplay;encrypted-media" style="width:1px;height:1px;border:none"></iframe>
+</div>
+
+<!-- Firebase: API keys ditam langsung di kode JS (lihat bagian FIREBASE CONFIG) -->
+
+<script>
+// ===== APP STATE & DATA =====
+const APP_KEY = 'mylinkshop_';
+let currentUsername = ''; // Username aktif
+let isOwner = false; // Apakah pengunjung adalah pemilik toko
+
+function getUsernameFromURL() {
+  var params = new URLSearchParams(window.location.search);
+  return params.get('u') || '';
+}
+
+function getDefaultData(username) {
+  return {
+    profile: {
+      name: username ? username.charAt(0).toUpperCase() + username.slice(1) : 'Nama Pengguna',
+      bio: 'Selamat datang di profil saya! \u2728',
+      avatar: '',
+      verified: true,
+      whatsapp: ''
+    },
+    links: [
+      { id: 'l1', platform: 'instagram', title: 'Instagram', url: 'https://instagram.com', clicks: 0 },
+      { id: 'l2', platform: 'whatsapp', title: 'WhatsApp', url: 'https://wa.me/', clicks: 0 },
+      { id: 'l3', platform: 'tiktok', title: 'TikTok', url: 'https://tiktok.com', clicks: 0 },
+      { id: 'l4', platform: 'youtube', title: 'YouTube', url: 'https://youtube.com', clicks: 0 }
+    ],
+    products: [],
+    stats: {}
+  };
+}
+
+const defaultData = getDefaultData('');
+
+let appData = loadData();
+let isEditMode = false;
+let isMusicPlaying = false;
+let productImgBase64 = '';
+
+function loadData() {
+  try {
+    var key = currentUsername ? (APP_KEY + 'data_' + currentUsername) : (APP_KEY + 'data');
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...getDefaultData(currentUsername), ...parsed };
+    }
+  } catch (e) { console.error('Load error:', e); }
+  return JSON.parse(JSON.stringify(getDefaultData(currentUsername)));
+}
+
+function saveData() {
+  try {
+    var key = currentUsername ? (APP_KEY + 'data_' + currentUsername) : (APP_KEY + 'data');
+    localStorage.setItem(key, JSON.stringify(appData));
+  } catch (e) { console.error('Save error:', e); }
+  // Auto-sync ke Firebase jika terhubung
+  if (firebaseConnected) { autoSyncFirebase(); }
+}
+
+// ===== USERNAME MANAGEMENT =====
+function saveLastUsernames(username) {
+  try {
+    var list = JSON.parse(localStorage.getItem(APP_KEY + 'last_users') || '[]');
+    list = list.filter(function(u) { return u !== username; });
+    list.unshift(username);
+    if (list.length > 5) list = list.slice(0, 5);
+    localStorage.setItem(APP_KEY + 'last_users', JSON.stringify(list));
+  } catch(e) {}
+}
+
+function getLastUsernames() {
+  try { return JSON.parse(localStorage.getItem(APP_KEY + 'last_users') || '[]'); }
+  catch(e) { return []; }
+}
+
+function validateUsername(username) {
+  return /^[a-zA-Z0-9._]{3,20}$/.test(username);
+}
+
+function handleWelcome() {
+  var input = document.getElementById('welcomeUsername');
+  var error = document.getElementById('welcomeError');
+  var username = input.value.trim().toLowerCase();
+
+  // Validasi
+  if (!username) {
+    error.textContent = 'Username tidak boleh kosong';
+    error.style.display = 'block';
+    return;
+  }
+  if (!validateUsername(username)) {
+    error.textContent = 'Username hanya boleh huruf, angka, titik, underscore (3-20 karakter)';
+    error.style.display = 'block';
+    return;
+  }
+
+  error.style.display = 'none';
+  var btn = document.getElementById('welcomeBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memuat...';
+
+  // Set username dan masuk
+  currentUsername = username;
+  isOwner = true;
+  saveLastUsernames(username);
+
+  // Cek Firebase dulu (jika config sudah diisi)
+  if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL) {
+    // Init Firebase dulu, lalu enter app setelah sync
+    initFirebase();
+    // Tunggu sebentar untuk Firebase connect, lalu enter
+    setTimeout(function() {
+      appData = loadData();
+      enterApp();
+    }, 500);
+  } else {
+    // Tanpa Firebase, gunakan localStorage
+    appData = loadData();
+    enterApp();
+  }
+}
+
+function enterApp() {
+  document.getElementById('welcomeScreen').classList.add('hidden');
+  // Update URL tanpa reload
+  var url = new URL(window.location.href);
+  url.searchParams.set('u', currentUsername);
+  url.searchParams.delete('admin');
+  window.history.replaceState({}, '', url.toString());
+
+  init();
+}
+
+function showWelcomeScreen() {
+  var screen = document.getElementById('welcomeScreen');
+  var loader = document.getElementById('loader');
+  screen.classList.remove('hidden');
+  if (loader) loader.classList.add('hidden');
+
+  // Tampilkan akun terakhir
+  var lastUsers = getLastUsernames();
+  var existDiv = document.getElementById('welcomeExist');
+  var existList = document.getElementById('welcomeExistList');
+  if (lastUsers.length > 0) {
+    existDiv.style.display = 'block';
+    existList.innerHTML = '';
+    lastUsers.forEach(function(u) {
+      var item = document.createElement('div');
+      item.className = 'welcome-exist-item';
+      item.innerHTML = '<div class="item-avatar"><i class="fas fa-user"></i></div><div><div class="item-name">' + escapeHTML(u) + '</div><div class="item-url">' + escapeHTML(window.location.origin + window.location.pathname + '?u=' + u) + '</div></div>';
+      item.addEventListener('click', function() {
+        document.getElementById('welcomeUsername').value = u;
+        handleWelcome();
+      });
+      existList.appendChild(item);
+    });
+  }
+
+  // Enter key support
+  document.getElementById('welcomeUsername').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleWelcome();
+  });
+}
+
+// ===== FIREBASE CONFIG (Tanam API keys di sini) =====
+// Ganti nilai di bawah ini dengan Firebase config Anda dari console.firebase.google.com
+// Pastikan sudah membuat Realtime Database dan mengatur rules ke test mode.
+const FIREBASE_CONFIG = {
+  apiKey: "",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+
+let firebaseConnected = false;
+let firebaseDb = null;
+let firebaseListener = null;
+
+function initFirebase() {
+  // Jika config kosong, skip Firebase
+  if (!FIREBASE_CONFIG.apiKey || !FIREBASE_CONFIG.databaseURL || !FIREBASE_CONFIG.projectId) {
+    console.log('[Firebase] Config kosong, skip koneksi Firebase.');
+    return;
+  }
+  try {
+    if (typeof firebase === 'undefined') {
+      console.log('[Firebase] SDK tidak tersedia.');
+      return;
+    }
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    firebaseDb = firebase.database();
+
+    // Test koneksi
+    var testRef = firebaseDb.ref('users/' + (currentUsername || '_test'));
+    testRef.once('value').then(function() {
+      firebaseConnected = true;
+      console.log('[Firebase] Terhubung!');
+
+      // Sync dari Firebase (download data terbaru)
+      syncFromFirebase();
+
+      // Setup real-time listener
+      setupFirebaseListener();
+    }).catch(function(err) {
+      console.warn('[Firebase] Gagal:', err.message);
+    });
+  } catch(e) {
+    console.warn('[Firebase] Init error:', e.message);
+  }
+}
+
+function setupFirebaseListener() {
+  if (firebaseListener) firebaseListener();
+  firebaseDb.ref('users/' + currentUsername).on('value', function(snapshot) {
+    var data = snapshot.val();
+    if (!data) return;
+    var cloudData = JSON.parse(JSON.stringify(defaultData));
+    if (data.profile) cloudData.profile = { ...cloudData.profile, ...data.profile };
+    if (data.links) cloudData.links = data.links;
+    if (data.products) cloudData.products = data.products;
+    appData = cloudData;
+    try {
+      var key = currentUsername ? (APP_KEY + 'data_' + currentUsername) : (APP_KEY + 'data');
+      localStorage.setItem(key, JSON.stringify(appData));
+    } catch(e) {}
+    renderProfile();
+    renderLinks();
+    renderProducts();
+    console.log('[Firebase] Data diperbarui (realtime)');
+  });
+}
+
+function autoSyncFirebase() {
+  if (!firebaseConnected || !firebaseDb || !currentUsername) return;
+  var dataToSync = JSON.parse(JSON.stringify(appData));
+  // Jangan simpan base64 besar ke Firebase
+  if (dataToSync.profile && dataToSync.profile.avatar && dataToSync.profile.avatar.length > 500000) {
+    dataToSync.profile.avatar = '';
+  }
+  if (dataToSync.products) {
+    dataToSync.products.forEach(function(p) {
+      if (p.image && p.image.length > 500000) p.image = '';
+    });
+  }
+  firebaseDb.ref('users/' + currentUsername).set(dataToSync);
+}
+
+function syncFromFirebase() {
+  if (!firebaseConnected || !firebaseDb || !currentUsername) return;
+  firebaseDb.ref('users/' + currentUsername).once('value').then(function(snapshot) {
+    var data = snapshot.val();
+    if (data) {
+      var cloudData = JSON.parse(JSON.stringify(defaultData));
+      if (data.profile) cloudData.profile = { ...cloudData.profile, ...data.profile };
+      if (data.links) cloudData.links = data.links;
+      if (data.products) cloudData.products = data.products;
+      appData = cloudData;
+      try {
+        var key = currentUsername ? (APP_KEY + 'data_' + currentUsername) : (APP_KEY + 'data');
+        localStorage.setItem(key, JSON.stringify(appData));
+      } catch(e) {}
+      renderProfile();
+      renderLinks();
+      renderProducts();
+      console.log('[Firebase] Data diunduh dari cloud');
+    } else {
+      // Firebase kosong, upload data lokal
+      autoSyncFirebase();
+    }
+  }).catch(function(err) {
+    console.warn('[Firebase] Download gagal:', err.message);
+  });
+}
+
+// ===== PLATFORM ICONS & COLORS =====
+const platformConfig = {
+  instagram: { icon: 'fab fa-instagram', color: '#E4405F' },
+  whatsapp: { icon: 'fab fa-whatsapp', color: '#25D366' },
+  tiktok: { icon: 'fab fa-tiktok', color: '#000000' },
+  youtube: { icon: 'fab fa-youtube', color: '#FF0000' },
+  twitter: { icon: 'fab fa-x-twitter', color: '#1DA1F2' },
+  facebook: { icon: 'fab fa-facebook', color: '#1877F2' },
+  telegram: { icon: 'fab fa-telegram', color: '#0088CC' },
+  linkedin: { icon: 'fab fa-linkedin', color: '#0A66C2' },
+  spotify: { icon: 'fab fa-spotify', color: '#1DB954' },
+  github: { icon: 'fab fa-github', color: '#333' },
+  email: { icon: 'fas fa-envelope', color: '#EA4335' },
+  website: { icon: 'fas fa-globe', color: '#4285F4' },
+  other: { icon: 'fas fa-link', color: '#6c5ce7' }
+};
+
+function getPlatformConfig(platform) {
+  return platformConfig[platform] || platformConfig.other;
+}
+
+// ===== FORMAT CURRENCY =====
+function formatRupiah(num) {
+  if (!num && num !== 0) return 'Rp 0';
+  return 'Rp ' + Number(num).toLocaleString('id-ID');
+}
+
+// ===== TOAST =====
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+  toast.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + '"></i> ' + message;
+  container.appendChild(toast);
+  setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
+}
+
+// ===== MODAL =====
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+
+// ===== RIPPLE EFFECT =====
+function createRipple(e, el) {
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  const rect = el.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+  ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+  el.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 600);
+}
+
+// ===== RENDER PROFILE =====
+function renderProfile() {
+  const p = appData.profile;
+  const nameDisplay = document.getElementById('profileNameDisplay');
+  const nameInput = document.getElementById('profileNameInput');
+  const bioDisplay = document.getElementById('profileBioDisplay');
+  const bioInput = document.getElementById('profileBioInput');
+  const avatar = document.getElementById('profileAvatar');
+  const placeholder = document.getElementById('avatarPlaceholder');
+  const verified = document.getElementById('verifiedBadge');
+  const toggleV = document.getElementById('toggleVerified');
+
+  nameDisplay.textContent = p.name;
+  nameInput.value = p.name;
+  bioDisplay.innerHTML = escapeHTML(p.bio);
+  bioInput.value = p.bio;
+  toggleV.checked = p.verified;
+
+  if (p.verified) { verified.classList.add('show'); }
+  else { verified.classList.remove('show'); }
+
+  if (p.avatar) {
+    avatar.src = p.avatar;
+    avatar.style.display = 'block';
+    avatar.style.opacity = '1';
+    avatar.style.visibility = 'visible';
+    placeholder.style.display = 'none';
+    // Fallback jika gambar gagal load
+    avatar.onerror = function() {
+      avatar.style.display = 'none';
+      placeholder.style.display = 'flex';
+      appData.profile.avatar = '';
+      saveData();
+    };
+  } else {
+    avatar.style.display = 'none';
+    placeholder.style.display = 'flex';
+  }
+}
+
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Profile edit listeners
+document.getElementById('profileNameInput').addEventListener('input', e => {
+  appData.profile.name = e.target.value;
+  document.getElementById('profileNameDisplay').textContent = e.target.value;
+  saveData();
+});
+document.getElementById('profileBioInput').addEventListener('input', e => {
+  appData.profile.bio = e.target.value;
+  document.getElementById('profileBioDisplay').innerHTML = escapeHTML(e.target.value);
+  saveData();
+});
+document.getElementById('toggleVerified').addEventListener('change', e => {
+  appData.profile.verified = e.target.checked;
+  saveData();
+  renderProfile();
+});
+
+// Avatar upload
+document.getElementById('avatarEditBtn').addEventListener('click', () => {
+  document.getElementById('avatarInput').click();
+});
+document.getElementById('avatarPlaceholder').addEventListener('click', () => {
+  if (isEditMode) document.getElementById('avatarInput').click();
+});
+document.getElementById('avatarInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('Ukuran file terlalu besar (max 2MB)', 'error');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    appData.profile.avatar = ev.target.result;
+    saveData();
+    renderProfile();
+    showToast('Foto profil diperbarui!', 'success');
+  };
+  reader.readAsDataURL(file);
+});
+
+// ===== RENDER LINKS =====
+function renderLinks() {
+  const list = document.getElementById('linksList');
+  list.innerHTML = '';
+  const maxClicks = Math.max(...appData.links.map(l => l.clicks), 1);
+
+  appData.links.forEach((link, idx) => {
+    const config = getPlatformConfig(link.platform);
+    const isPopular = link.clicks >= 5;
+    const item = document.createElement('div');
+    item.className = 'link-item' + (isPopular ? ' popular' : '');
+    item.style.animationDelay = (idx * 0.05) + 's';
+    item.style.cursor = 'pointer';
+
+    item.innerHTML = `
+      <div class="link-icon" style="background:${config.color}22;color:${config.color}">
+        <i class="${config.icon}"></i>
+      </div>
+      <div class="link-info">
+        <div class="link-title">${escapeHTML(link.title)}</div>
+        <div class="link-url">${escapeHTML(link.url)}</div>
+      </div>
+      <div class="link-clicks" style="display:${isEditMode ? 'block' : 'none'}"><i class="fas fa-mouse-pointer"></i> ${link.clicks}</div>
+      <div class="link-actions" style="display:${isEditMode ? 'flex' : 'none'}">
+        <button class="btn-edit-link" type="button"><i class="fas fa-pen"></i></button>
+        <button class="btn-delete-link" type="button"><i class="fas fa-trash"></i></button>
+      </div>
+    `;
+
+    // Tombol edit (addEventListener, bukan inline onclick)
+    var editBtn = item.querySelector('.btn-edit-link');
+    editBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      editLink(link.id);
+    });
+
+    // Tombol hapus (addEventListener, bukan inline onclick)
+    var deleteBtn = item.querySelector('.btn-delete-link');
+    deleteBtn._linkId = link.id;
+    deleteBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      var btn = this;
+      if (btn.dataset.confirming === 'yes') {
+        // Kedua klik: HAPUS!
+        appData.links = appData.links.filter(function(l) { return l.id !== btn._linkId; });
+        saveData();
+        renderLinks();
+        showToast('Link dihapus', 'info');
+      } else {
+        // Klik pertama: tanya konfirmasi
+        btn.dataset.confirming = 'yes';
+        btn.classList.add('confirm');
+        btn.innerHTML = 'Hapus?';
+        // Reset setelah 3 detik
+        setTimeout(function() {
+          if (btn && btn.dataset.confirming === 'yes') {
+            btn.dataset.confirming = '';
+            btn.classList.remove('confirm');
+            btn.innerHTML = '<i class="fas fa-trash"></i>';
+          }
+        }, 3000);
+      }
+    });
+
+    // Klik area link (buka URL)
+    item.addEventListener('click', function(e) {
+      // Jangan navigasi jika klik tombol
+      if (e.target.closest('.btn-edit-link') || e.target.closest('.btn-delete-link')) return;
+      if (isEditMode) return;
+      createRipple(e, item);
+      link.clicks++;
+      saveData();
+      window.open(link.url, '_blank', 'noopener,noreferrer');
+    });
+
+    list.appendChild(item);
+  });
+}
+
+// ===== LINK CRUD =====
+document.getElementById('btnAddLink').addEventListener('click', () => {
+  document.getElementById('modalLinkTitle').textContent = 'Tambah Link';
+  document.getElementById('formLink').reset();
+  document.getElementById('linkEditId').value = '';
+  openModal('modalLink');
+});
+
+function saveLink(e) {
+  e.preventDefault();
+  const editId = document.getElementById('linkEditId').value;
+  const linkData = {
+    id: editId || 'l' + Date.now(),
+    platform: document.getElementById('linkPlatform').value,
+    title: document.getElementById('linkTitle').value.trim(),
+    url: document.getElementById('linkUrl').value.trim(),
+    clicks: 0
+  };
+
+  if (editId) {
+    const idx = appData.links.findIndex(l => l.id === editId);
+    if (idx >= 0) { linkData.clicks = appData.links[idx].clicks; appData.links[idx] = linkData; }
+  } else {
+    appData.links.push(linkData);
+  }
+
+  saveData();
+  renderLinks();
+  closeModal('modalLink');
+  showToast(editId ? 'Link diperbarui!' : 'Link ditambahkan!', 'success');
+}
+
+function editLink(id) {
+  const link = appData.links.find(l => l.id === id);
+  if (!link) return;
+  document.getElementById('modalLinkTitle').textContent = 'Edit Link';
+  document.getElementById('linkPlatform').value = link.platform;
+  document.getElementById('linkTitle').value = link.title;
+  document.getElementById('linkUrl').value = link.url;
+  document.getElementById('linkEditId').value = link.id;
+  openModal('modalLink');
+}
+
+// ===== RENDER PRODUCTS =====
+function renderProducts() {
+  const grid = document.getElementById('productsGrid');
+  grid.innerHTML = '';
+
+  if (appData.products.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--text-muted);font-size:0.85rem"><i class="fas fa-box-open" style="font-size:2rem;display:block;margin-bottom:10px"></i>Belum ada produk.<br>Tambahkan produk pertama Anda!</div>';
+    return;
+  }
+
+  const maxProductClicks = Math.max(...appData.products.map(p => p.clicks || 0), 1);
+
+  appData.products.forEach((product, idx) => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.style.animationDelay = (idx * 0.05) + 's';
+    const isPopular = (product.clicks || 0) >= 3;
+
+    card.innerHTML = `
+      <div class="product-img-wrap">
+        ${product.image ? `<img src="${product.image}" alt="${escapeHTML(product.name)}" loading="lazy">` : '<div class="product-img-placeholder"><i class="fas fa-image"></i></div>'}
+        ${isPopular ? '<div class="product-badge-popular">POPULER</div>' : ''}
+        <div class="product-actions-card">
+          <button onclick="editProduct('${product.id}')" title="Edit"><i class="fas fa-pen"></i></button>
+          <button onclick="deleteProduct('${product.id}')" title="Hapus" style="background:rgba(255,107,107,0.7)"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>
+      <div class="product-info">
+        <div class="product-name">${escapeHTML(product.name)}</div>
+        <div class="product-desc">${escapeHTML(product.desc || '')}</div>
+        <div class="product-bottom">
+          <div class="product-price">${formatRupiah(product.price)}</div>
+          <div style="display:flex;gap:6px">
+            ${product.demoUrl ? `<a class="btn-demo" href="${escapeHTML(product.demoUrl)}" target="_blank" rel="noopener noreferrer" title="Lihat Demo"><i class="fas fa-eye"></i></a>` : ''}
+            <button class="btn-buy" onclick="buyProduct('${product.id}')">
+              <i class="fab fa-whatsapp"></i> Beli
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ===== PRODUCT CRUD =====
+document.getElementById('btnAddProduct').addEventListener('click', () => {
+  document.getElementById('modalProductTitle').textContent = 'Tambah Produk';
+  document.getElementById('formProduct').reset();
+  document.getElementById('productEditId').value = '';
+  document.getElementById('productImgData').value = '';
+  document.getElementById('productImgPreview').classList.remove('show');
+  document.getElementById('productImgPreview').src = '';
+  document.getElementById('productWhatsapp').value = appData.profile.whatsapp || '';
+  productImgBase64 = '';
+  openModal('modalProduct');
+});
+
+document.getElementById('productImgInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('Ukuran file terlalu besar (max 2MB)', 'error');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = ev => {
+    productImgBase64 = ev.target.result;
+    const preview = document.getElementById('productImgPreview');
+    preview.src = productImgBase64;
+    preview.classList.add('show');
+  };
+  reader.readAsDataURL(file);
+});
+
+function saveProduct(e) {
+  e.preventDefault();
+  const editId = document.getElementById('productEditId').value;
+  const productData = {
+    id: editId || 'p' + Date.now(),
+    name: document.getElementById('productName').value.trim(),
+    price: parseInt(document.getElementById('productPrice').value) || 0,
+    desc: document.getElementById('productDesc').value.trim(),
+    image: productImgBase64 || document.getElementById('productImgData').value || '',
+    whatsapp: document.getElementById('productWhatsapp').value.trim(),
+    demoUrl: document.getElementById('productDemoUrl').value.trim(),
+    clicks: 0
+  };
+
+  if (editId) {
+    const idx = appData.products.findIndex(p => p.id === editId);
+    if (idx >= 0) { productData.clicks = appData.products[idx].clicks; appData.products[idx] = productData; }
+  } else {
+    appData.products.push(productData);
+  }
+
+  saveData();
+  renderProducts();
+  closeModal('modalProduct');
+  productImgBase64 = '';
+  showToast(editId ? 'Produk diperbarui!' : 'Produk ditambahkan!', 'success');
+}
+
+function editProduct(id) {
+  const product = appData.products.find(p => p.id === id);
+  if (!product) return;
+  document.getElementById('modalProductTitle').textContent = 'Edit Produk';
+  document.getElementById('productName').value = product.name;
+  document.getElementById('productPrice').value = product.price;
+  document.getElementById('productDesc').value = product.desc || '';
+  document.getElementById('productWhatsapp').value = product.whatsapp || '';
+  document.getElementById('productDemoUrl').value = product.demoUrl || '';
+  document.getElementById('productEditId').value = product.id;
+  document.getElementById('productImgData').value = product.image || '';
+
+  productImgBase64 = product.image || '';
+  const preview = document.getElementById('productImgPreview');
+  if (product.image) {
+    preview.src = product.image;
+    preview.classList.add('show');
+  } else {
+    preview.classList.remove('show');
+    preview.src = '';
+  }
+  openModal('modalProduct');
+}
+
+function deleteProduct(id) {
+  if (!confirm('Hapus produk ini?')) return;
+  appData.products = appData.products.filter(p => p.id !== id);
+  saveData();
+  renderProducts();
+  showToast('Produk dihapus', 'info');
+}
+
+function buyProduct(id) {
+  const product = appData.products.find(p => p.id === id);
+  if (!product) return;
+  product.clicks = (product.clicks || 0) + 1;
+  saveData();
+  renderProducts();
+
+  const phone = product.whatsapp || appData.profile.whatsapp || '628123456789';
+  const message = encodeURIComponent('Halo, saya ingin membeli ' + product.name);
+  window.open('https://wa.me/' + phone + '?text=' + message, '_blank');
+}
+
+// ===== THEME TOGGLE =====
+function initTheme() {
+  const saved = localStorage.getItem(APP_KEY + 'theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  else {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+  }
+  updateThemeIcon();
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem(APP_KEY + 'theme', next);
+  updateThemeIcon();
+}
+function updateThemeIcon() {
+  const btn = document.getElementById('btnTheme');
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+}
+document.getElementById('btnTheme').addEventListener('click', toggleTheme);
+
+// ===== EDIT MODE =====
+function setEditMode(active, silent) {
+  isEditMode = active;
+  document.body.classList.toggle('edit-mode', isEditMode);
+  document.getElementById('btnEdit').classList.toggle('active', isEditMode);
+
+  const nameInput = document.getElementById('profileNameInput');
+  const bioInput = document.getElementById('profileBioInput');
+
+  if (isEditMode) {
+    nameInput.style.display = 'block';
+    bioInput.style.display = 'block';
+    if (!silent) showToast('Mode edit aktif', 'info');
+  } else {
+    nameInput.style.display = 'none';
+    bioInput.style.display = 'none';
+    if (!silent) showToast('Mode edit nonaktif', 'info');
+  }
+  renderLinks();
+  renderProducts();
+}
+
+document.getElementById('btnEdit').addEventListener('click', () => {
+  setEditMode(!isEditMode, false);
+});
+
+// ===== MUSIC =====
+const MUSIC_URL = 'https://screenapp.io/app/v/cUYeVfUlhZ';
+const musicMiniBar = document.getElementById('musicMiniBar');
+const musicIframe = document.getElementById('musicIframe');
+const musicIframeHidden = document.getElementById('musicIframeHidden');
+const musicPlayerExpanded = document.getElementById('musicPlayerExpanded');
+let isPlayerExpanded = false;
+
+function startMusic() {
+  // Auto-play di background (hidden iframe)
+  musicIframeHidden.src = MUSIC_URL;
+  // Tampilkan mini bar
+  musicMiniBar.classList.add('show');
+  isMusicPlaying = true;
+  document.getElementById('btnMusic').classList.add('playing');
+ showToast('Musik diputar di background', 'success');
+}
+
+function stopMusic() {
+  musicIframeHidden.src = '';
+  musicIframe.src = '';
+  musicMiniBar.classList.remove('show');
+  musicPlayerExpanded.style.display = 'none';
+  isPlayerExpanded = false;
+  isMusicPlaying = false;
+  document.getElementById('btnMusic').classList.remove('playing');
+  var expandBtn = document.getElementById('btnToggleExpand');
+  expandBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+  showToast('Musik dimatikan', 'info');
+}
+
+function toggleMusicExpand() {
+  var expandBtn = document.getElementById('btnToggleExpand');
+  if (isPlayerExpanded) {
+  musicPlayerExpanded.style.display = 'none';
+    expandBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+    isPlayerExpanded = false;
+  } else {
+    // Load ke iframe visible juga
+    musicIframe.src = MUSIC_URL;
+    musicPlayerExpanded.style.display = 'block';
+    expandBtn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+    isPlayerExpanded = true;
+  }
+}
+
+// Tombol Musik di top bar
+function toggleMusicFromTopBar() {
+  if (isMusicPlaying) {
+    stopMusic();
+  } else {
+    startMusic();
+  }
+}
+
+document.getElementById('btnMusic').addEventListener('click', toggleMusicFromTopBar);
+document.getElementById('btnStopMusic').addEventListener('click', stopMusic);
+document.getElementById('btnToggleExpand').addEventListener('click', toggleMusicExpand);
+
+// ===== SHARE =====
+function getShareURL() {
+  var url = new URL(window.location.href);
+  url.searchParams.set('u', currentUsername);
+  url.searchParams.set('mode', 'shop');
+  url.searchParams.delete('admin');
+  return url.toString();
+}
+
+function isAdminView() {
+  var params = new URLSearchParams(window.location.search);
+  return params.get('admin') === '1' || params.get('mode') !== 'shop';
+}
+
+function isShareView() {
+  var params = new URLSearchParams(window.location.search);
+  return params.get('mode') === 'shop' && params.get('admin') !== '1';
+}
+
+function enableShareView() {
+  document.body.classList.add('share-view');
+  isEditMode = false;
+}
+
+function enableAdminView() {
+  document.body.classList.remove('share-view');
+}
+
+document.getElementById('btnShare').addEventListener('click', () => {
+  var shareUrl = getShareURL();
+  if (navigator.share) {
+    navigator.share({
+      title: appData.profile.name + ' - Toko',
+      text: appData.profile.bio,
+      url: shareUrl
+    }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      showToast('Link toko disalin!', 'success');
+    }).catch(() => {
+      showToast('Gagal menyalin link', 'error');
+    });
+  }
+});
+
+// ===== STATS =====
+document.getElementById('btnStats').addEventListener('click', () => {
+  renderStats();
+  openModal('modalStats');
+});
+
+function renderStats() {
+  const totalClicks = appData.links.reduce((s, l) => s + l.clicks, 0) +
+                      appData.products.reduce((s, p) => s + (p.clicks || 0), 0);
+  document.getElementById('statTotalClicks').textContent = totalClicks;
+  document.getElementById('statTotalLinks').textContent = appData.links.length;
+  document.getElementById('statTotalProducts').textContent = appData.products.length;
+
+  const listEl = document.getElementById('statsLinksList');
+  listEl.innerHTML = '';
+
+  const allItems = [
+    ...appData.links.map(l => ({ name: l.title, clicks: l.clicks, type: 'link' })),
+    ...appData.products.map(p => ({ name: p.name, clicks: p.clicks || 0, type: 'product' }))
+  ].sort((a, b) => b.clicks - a.clicks);
+
+  if (allItems.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:0.8rem">Belum ada data</div>';
+    return;
+  }
+
+  allItems.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'stats-list-item';
+    el.innerHTML = `
+      <span class="name"><i class="fas fa-${item.type === 'link' ? 'link' : 'box'}" style="margin-right:6px;font-size:0.7rem;color:var(--accent-secondary)"></i>${escapeHTML(item.name)}</span>
+      <span class="count">${item.clicks} klik</span>
+    `;
+    listEl.appendChild(el);
+  });
+}
+
+function resetStats() {
+  if (!confirm('Reset semua statistik klik?')) return;
+  appData.links.forEach(l => l.clicks = 0);
+  appData.products.forEach(p => p.clicks = 0);
+  saveData();
+  renderLinks();
+  renderProducts();
+  renderStats();
+  showToast('Statistik direset', 'info');
+}
+
+// ===== SCROLL TO TOP =====
+const fabTop = document.getElementById('fabTop');
+window.addEventListener('scroll', () => {
+  fabTop.style.display = window.scrollY > 300 ? 'flex' : 'none';
+});
+document.getElementById('fabTop').addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// ===== FLOATING WHATSAPP =====
+document.getElementById('fabWhatsApp').addEventListener('click', () => {
+  const phone = appData.profile.whatsapp || '628123456789';
+  window.open('https://wa.me/' + phone, '_blank');
+});
+
+// ===== PARTICLES =====
+function initParticles() {
+  const canvas = document.getElementById('particlesCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  const PARTICLE_COUNT = 40;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 2 + 0.5,
+      dx: (Math.random() - 0.5) * 0.4,
+      dy: (Math.random() - 0.5) * 0.4,
+      opacity: Math.random() * 0.4 + 0.1
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const color = isDark ? '255,255,255' : '100,100,180';
+
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${color},${p.opacity})`;
+      ctx.fill();
+
+      p.x += p.dx;
+      p.y += p.dy;
+
+      if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+    });
+
+    // Draw connections
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 120) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(${color},${0.06 * (1 - dist / 120)})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ===== INIT =====
+function hideLoader() {
+  const loader = document.getElementById('loader');
+  if (loader) loader.classList.add('hidden');
+}
+
+function init() {
+  try {
+    initTheme();
+    renderProfile();
+    renderLinks();
+    renderProducts();
+    initParticles();
+
+    // Cek mode tampilan berdasarkan URL
+    if (isShareView()) {
+      // Mode share: hanya tampilkan produk
+      enableShareView();
+    } else {
+      // Mode admin: aktifkan edit
+      setEditMode(true, true);
+      // Auto-connect Firebase (jika config sudah diisi)
+      initFirebase();
+    }
+  } catch(e) {
+    console.error('Init error:', e);
+  }
+  // Hide loader immediately + safety timeout
+  hideLoader();
+  setTimeout(hideLoader, 100);
+  setTimeout(hideLoader, 500);
+}
+
+// ===== APP ROUTING =====
+function appStart() {
+  initTheme(); // Theme harus dulu agar welcome screen styled
+  var username = getUsernameFromURL();
+
+  if (username) {
+    // Ada username di URL
+    currentUsername = username;
+    var params = new URLSearchParams(window.location.search);
+
+    if (params.get('mode') === 'shop' && params.get('admin') !== '1') {
+      // Mode pengunjung (lihat toko orang lain)
+      isOwner = false;
+      appData = loadData();
+      enableShareView();
+      // Coba init Firebase untuk load data dari cloud
+      initFirebase();
+      init();
+    } else {
+      // Mode admin (pemilik toko)
+      isOwner = true;
+      appData = loadData();
+      init();
+    }
+  } else {
+    // Tidak ada username → tampilkan welcome screen
+    showWelcomeScreen();
+  }
+}
+
+// Wait for DOM
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', appStart);
+} else {
+  appStart();
+}
+// Ultimate fallback
+setTimeout(function() {
+  var ws = document.getElementById('welcomeScreen');
+  if (ws && !ws.classList.contains('hidden')) return; // welcome masih tampil, biarkan
+  hideLoader();
+}, 3000);
+window.addEventListener('load', function() {
+  var ws = document.getElementById('welcomeScreen');
+  if (ws && !ws.classList.contains('hidden')) return;
+  hideLoader();
+});
+
+// ===== KEYBOARD SHORTCUTS =====
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.show').forEach(m => closeModal(m.id));
+  }
+});
+</script>
+</body>
+</html>
