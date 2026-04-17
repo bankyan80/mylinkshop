@@ -1214,16 +1214,77 @@ function setupFirebaseListener() {
 function autoSyncFirebase() {
   if (!firebaseConnected || !firebaseDb || !currentUsername) return;
   var dataToSync = JSON.parse(JSON.stringify(appData));
-  // Jangan simpan base64 terlalu besar ke Firebase (>2MB)
-  if (dataToSync.profile && dataToSync.profile.avatar && dataToSync.profile.avatar.length > 2000000) {
-    dataToSync.profile.avatar = '';
+  // Kompresi gambar besar sebelum sync ke Firebase
+  compressBase64ForSync(dataToSync, function(cleanData) {
+    firebaseDb.ref('users/' + currentUsername).set(cleanData);
+  });
+}
+
+// Kompresi base64 string (avatar & produk) agar ukuran kecil saat sync
+function compressBase64ForSync(data, callback) {
+  var promises = [];
+
+  // Kompresi avatar jika terlalu besar (>100KB)
+  if (data.profile && data.profile.avatar && data.profile.avatar.length > 100000) {
+    promises.push(function() {
+      return new Promise(function(resolve) {
+        compressBase64String(data.profile.avatar, 300, 300, 0.7, function(result) {
+          data.profile.avatar = result;
+          resolve();
+        });
+      });
+    }());
   }
-  if (dataToSync.products) {
-    dataToSync.products.forEach(function(p) {
-      if (p.image && p.image.length > 2000000) p.image = '';
+
+  // Kompresi gambar produk jika terlalu besar (>100KB)
+  if (data.products) {
+    data.products.forEach(function(p) {
+      if (p.image && p.image.length > 100000) {
+        promises.push(function(imgRef) {
+          return function() {
+            return new Promise(function(resolve) {
+              compressBase64String(imgRef, 600, 600, 0.65, function(result) {
+                p.image = result;
+                resolve();
+              });
+            });
+          };
+        }(p.image));
+      }
     });
   }
-  firebaseDb.ref('users/' + currentUsername).set(dataToSync);
+
+  if (promises.length === 0) {
+    callback(data);
+  } else {
+    Promise.all(promises).then(function() { callback(data); });
+  }
+}
+
+// Kompresi base64 string → resized JPEG
+function compressBase64String(base64Str, maxWidth, maxHeight, quality, callback) {
+  var img = new Image();
+  img.onload = function() {
+    var w = img.width;
+    var h = img.height;
+    if (w > maxWidth || h > maxHeight) {
+      var ratio = Math.min(maxWidth / w, maxHeight / h);
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+    }
+    var canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    var compressed = canvas.toDataURL('image/jpeg', quality || 0.65);
+    callback(compressed);
+  };
+  img.onerror = function() {
+    // Jika gagal kompres, kembalikan asli
+    callback(base64Str);
+  };
+  img.src = base64Str;
 }
 
 function syncFromFirebase() {
