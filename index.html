@@ -1850,12 +1850,20 @@ document.getElementById('btnStopMusic').addEventListener('click', stopMusic);
 document.getElementById('btnToggleExpand').addEventListener('click', toggleMusicExpand);
 
 // ===== SHARE =====
+// Konfigurasi base URL — ganti jika domain Anda berbeda dari URL saat ini
+// Contoh: var SHOP_BASE_URL = 'https://tokosaya.com';
+// Jika kosong, akan otomatis menggunakan domain saat ini
+var SHOP_BASE_URL = '';
+
 function getShareURL() {
-  var url = new URL(window.location.href);
-  url.searchParams.set('u', currentUsername);
-  url.searchParams.set('mode', 'shop');
-  url.searchParams.delete('admin');
-  return url.toString();
+  var baseUrl = SHOP_BASE_URL
+    ? (SHOP_BASE_URL.replace(/\/+$/, '') + window.location.pathname)
+    : (window.location.origin + window.location.pathname);
+  var params = new URLSearchParams();
+  params.set('u', currentUsername);
+  params.set('mode', 'shop');
+  // Bersihkan URL: hapus semua parameter & hash lama, bangun URL baru yang clean
+  return baseUrl + '?' + params.toString();
 }
 
 function isAdminView() {
@@ -1877,22 +1885,73 @@ function enableAdminView() {
   document.body.classList.remove('share-view');
 }
 
+// Fallback copy to clipboard (untuk non-HTTPS / context yang tidak aman)
+function fallbackCopyText(text) {
+  try {
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    var success = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return success;
+  } catch (e) {
+    return false;
+  }
+}
+
 document.getElementById('btnShare').addEventListener('click', () => {
+  if (!currentUsername) {
+    showToast('Username belum diatur!', 'error');
+    return;
+  }
   var shareUrl = getShareURL();
+
+  // Coba Web Share API (hanya berfungsi di HTTPS & browser pendukung)
   if (navigator.share) {
     navigator.share({
-      title: appData.profile.name + ' - Toko',
-      text: appData.profile.bio,
+      title: (appData.profile.name || 'Toko') + ' - Toko',
+      text: appData.profile.bio || '',
       url: shareUrl
-    }).catch(() => {});
-  } else {
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      showToast('Link toko disalin!', 'success');
-    }).catch(() => {
-      showToast('Gagal menyalin link', 'error');
+    }).catch(function(err) {
+      // User batal share atau error — fallback ke clipboard
+      if (err.name !== 'AbortError') {
+        console.warn('[Share] Web Share API gagal:', err.message);
+      }
+      copyToClipboardWithFallback(shareUrl);
     });
+  } else {
+    copyToClipboardWithFallback(shareUrl);
   }
 });
+
+function copyToClipboardWithFallback(text) {
+  // Coba Clipboard API dulu (HTTPS only)
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(function() {
+      showToast('Link toko disalin!', 'success');
+    }).catch(function() {
+      // Clipboard API gagal, pakai fallback
+      if (fallbackCopyText(text)) {
+        showToast('Link toko disalin!', 'success');
+      } else {
+        // Fallback juga gagal — tampilkan URL agar user bisa copy manual
+        prompt('Salin link toko ini:', text);
+      }
+    });
+  } else {
+    // Bukan secure context — langsung pakai fallback
+    if (fallbackCopyText(text)) {
+      showToast('Link toko disalin!', 'success');
+    } else {
+      prompt('Salin link toko ini:', text);
+    }
+  }
+}
 
 // ===== STATS =====
 document.getElementById('btnStats').addEventListener('click', () => {
@@ -2067,11 +2126,76 @@ function appStart() {
     if (params.get('mode') === 'shop' && params.get('admin') !== '1') {
       // Mode pengunjung (lihat toko orang lain)
       isOwner = false;
-      appData = loadData();
       enableShareView();
+
       // Coba init Firebase untuk load data dari cloud
-      initFirebase();
-      init();
+      if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL) {
+        // Visitor: muat data dari Firebase dulu, baru render
+        initFirebase();
+        // Tunggu Firebase load data, lalu baru init & render
+        // Jika Firebase gagal dalam 5 detik, fallback ke localStorage
+        var firebaseLoaded = false;
+        var firebaseTimeout = setTimeout(function() {
+          if (!firebaseLoaded) {
+            console.warn('[Share] Firebase timeout, menggunakan data lokal/fallback');
+            firebaseLoaded = true;
+            appData = loadData();
+            init();
+            // Tampilkan info jika data kosong
+            if (appData.products.length === 0) {
+              showToast('Data belum tersinkronisasi. Coba refresh halaman.', 'info');
+            }
+          }
+        }, 5000);
+
+        // Override syncFromFirebase untuk menandai sudah selesai
+        var origSyncFromFirebase = syncFromFirebase;
+        syncFromFirebase = function() {
+          firebaseDb.ref('users/' + currentUsername).once('value').then(function(snapshot) {
+            var data = snapshot.val();
+            if (data) {
+              firebaseLoaded = true;
+              clearTimeout(firebaseTimeout);
+              var cloudData = JSON.parse(JSON.stringify(defaultData));
+              if (data.profile) cloudData.profile = { ...cloudData.profile, ...data.profile };
+              if (data.links) cloudData.links = data.links;
+              if (data.products) cloudData.products = data.products;
+              appData = cloudData;
+              try {
+                var key = currentUsername ? (APP_KEY + 'data_' + currentUsername) : (APP_KEY + 'data');
+                localStorage.setItem(key, JSON.stringify(appData));
+              } catch(e) {}
+              init(); // Render setelah data Firebase siap
+              console.log('[Share] Data berhasil dimuat dari cloud');
+            } else {
+              // Firebase kosong untuk user ini
+              firebaseLoaded = true;
+              clearTimeout(firebaseTimeout);
+              appData = loadData();
+              init();
+              if (appData.products.length === 0) {
+                showToast('Toko belum memiliki produk.', 'info');
+              }
+            }
+          }).catch(function(err) {
+            console.warn('[Share] Firebase gagal:', err.message);
+            firebaseLoaded = true;
+            clearTimeout(firebaseTimeout);
+            appData = loadData();
+            init();
+          });
+        };
+        // Also trigger the initial sync
+        setTimeout(function() {
+          if (!firebaseLoaded) {
+            syncFromFirebase();
+          }
+        }, 600);
+      } else {
+        // Tanpa Firebase, gunakan localStorage saja
+        appData = loadData();
+        init();
+      }
     } else {
       // Mode admin (pemilik toko)
       isOwner = true;
